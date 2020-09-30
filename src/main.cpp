@@ -42,6 +42,11 @@ double gravity = .3, pressure = 4, viscosity = 7;
 // int inputSize = sizeof(input);
 std::vector<Particule> particules(1);
 
+void console(const char* pMessage)
+{
+	std::cout << "CONSOLE SAYING -> " << pMessage << std::endl;
+}
+
 int main(int argc, char *argv[])
 {
 	if (SDL_Init(SDL_INIT_VIDEO) > 0)
@@ -64,6 +69,10 @@ int main(int argc, char *argv[])
 	bool isSimRunning = true;
 	int currentType = 0;
 	bool canOverlapParts = false;
+	bool isPlayingOneStep = false;
+
+	char reminder[100] = 	"Hello";
+							"Hello";
 
 	// int test;
 	// test << std::cin;
@@ -141,7 +150,7 @@ int main(int argc, char *argv[])
 						yParticuleDistance = yPos - particules[i].yPos;
 						particulesDistance = sqrt( pow(xParticuleDistance,2.0) + pow(yParticuleDistance,2.0));
 		
-						if (particulesDistance < 1){
+						if (particulesDistance < 1 and !canOverlapParts){
 							isCreatePart = false;
 							break;
 						}
@@ -164,18 +173,51 @@ int main(int argc, char *argv[])
 				{
 					case SDLK_SPACE:
 						isSimRunning = !isSimRunning;
+						if (isSimRunning)
+						{
+							console("Sim continue");
+						}
+						else
+						{
+							console("Sim pause");
+						}
 						break;
 					case SDLK_x:
 						currentType = !currentType;
+						console("Change particule's type");
+						break;
 					case SDLK_s:
 						canOverlapParts = !canOverlapParts;
+						if (canOverlapParts)
+						{
+							console("Particule placement authorize overlap");
+						}
+						else
+						{
+							console("Particule placement don't authorize overlap");
+						}
+						break;
+					case SDLK_RIGHT:
+						if (!isSimRunning)
+						{
+							isPlayingOneStep = true;
+							console("Sim plays one step");
+						}
+						break;
+					case SDLK_i:
+						std::string s = "There is ";
+						s.append(std::to_string(totalOfParticules));
+						s.append(" particules");
+						char const *message = s.c_str();
+						console(message);
+
 				}
 			}
 		}
 
 		window.Clear();
 		//Game logic
-		if (SDL_GetTicks() - currentTimeStep > TIME_STEP)
+		if (SDL_GetTicks() - currentTimeStep > TIME_STEP or isPlayingOneStep)
 		{
 			// std::cout<<SDL_GetTicks() - currentTimeStep<<std::endl;
 			// if (SDL_GetTicks() - currentTimeStep > 22)
@@ -184,10 +226,11 @@ int main(int argc, char *argv[])
 			// }
 			currentTimeStep = SDL_GetTicks();
 
-			if (!isSimRunning)
+			if (!isSimRunning and !isPlayingOneStep)
 			{
 				goto endSim;
 			}
+			isPlayingOneStep = false;
 
 			// Particule part;
 			// particules.push_back(part);
@@ -286,6 +329,11 @@ int main(int argc, char *argv[])
 				{
 					width = width.Mult(PARTICULE_SIZE_DRAW);
 					double gradientVal = particules[i].density / 5;
+					// double gradientVal = (abs(particules[i].xVelocity) + abs(particules[i].yVelocity))/5;
+					if (gradientVal > 1)
+					{
+						gradientVal = 1;
+					}
 					color = color.Add(C_RED.Mult(gradientVal));
 
 				}
@@ -303,3 +351,4 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
+
