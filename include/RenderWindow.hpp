@@ -12,10 +12,11 @@ public:
 	SDL_Texture* LoadTexture(const char* p_FilePath);
 	void CleanUp();
 	void Clear();
+	void Clear(Vector2D pColor);
 	void RenderTex(SDL_Texture* p_tex,float p_x, float p_y, float p_sizeW, float p_sizeH);
 	void Display();
-	void DrawRect(Vector2D pPos, Vector2D pWidth, Vector2D color);
-private:
+	void DrawRect(Vector2D pPos, Vector2D pWidth, Vector2D pColor);
 	SDL_Window* window;
 	SDL_Renderer* renderer;
+private:
 };

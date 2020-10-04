@@ -40,6 +40,13 @@ void RenderWindow::Clear()
 	SDL_RenderClear(renderer);
 }
 
+void RenderWindow::Clear(Vector2D pColor)
+{
+	SDL_SetRenderDrawColor(renderer, pColor.x, pColor.y, pColor.z, pColor.w);
+	SDL_RenderClear(renderer);
+	SDL_SetRenderDrawColor(renderer,0, 0, 0, 0);
+}
+
 void RenderWindow::RenderTex(SDL_Texture* p_tex,float p_x, float p_y, float p_sizeW, float p_sizeH)
 {
 	int wTex,hTex;
@@ -66,9 +73,9 @@ void RenderWindow::Display()
 	SDL_RenderPresent(renderer);
 }
 
-void RenderWindow::DrawRect(Vector2D pPos, Vector2D pWidth, Vector2D color)
+void RenderWindow::DrawRect(Vector2D pPos, Vector2D pWidth, Vector2D pColor)
 {
-	SDL_SetRenderDrawColor(renderer, color.x, color.y, color.z, color.w);
+	SDL_SetRenderDrawColor(renderer, pColor.x, pColor.y, pColor.z, pColor.w);
 
 	SDL_Rect myRect;
 	myRect.x = pPos.x;

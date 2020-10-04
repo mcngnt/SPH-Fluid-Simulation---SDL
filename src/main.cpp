@@ -10,11 +10,12 @@
 #define SCREEN_WIDTH 1080
 #define SCREEN_HEIGTH 720
 #define TIME_STEP 20
-#define ZOOM_VAL 4
+// #define ZOOM_VAL 4
 #define PARTICULE_SIZE_DRAW 2
 
 Vector2D C_RED(255, 0, 0, 255);
 Vector2D C_BLUE(0, 0, 255, 255);
+Vector2D C_GRAY(0, 10, 15, 255);
 
 // int xSandboxAreaScan = 0, ySandboxAreaScan = 0;
 
@@ -37,14 +38,31 @@ double particulesDistance;
 int	x, y, totalOfParticules;
 double gravity = .3, pressure = 4, viscosity = 7;
 
-// char input[] =
-// " ";
-// int inputSize = sizeof(input);
+
 std::vector<Particule> particules(1);
 
 void console(const char* pMessage)
 {
 	std::cout << "CONSOLE SAYING -> " << pMessage << std::endl;
+}
+
+void saveScreenshot(SDL_Renderer* pRenderer, long pFramesNumber)
+{
+	SDL_Surface *sshot = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGTH, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+	SDL_RenderReadPixels(pRenderer, NULL, SDL_PIXELFORMAT_ARGB8888, sshot->pixels, sshot->pitch);
+
+	std::string s = "images/";
+	s.append(std::to_string(pFramesNumber));
+	s.append(".bmp");
+	char const *fileName = s.c_str();
+
+	if (SDL_SaveBMP(sshot, fileName) != 0)
+	{
+		printf("SDL_SaveBMP failed: %s\n", SDL_GetError());
+	}
+	SDL_FreeSurface(sshot);
+
+	console("Screenshot saved in images folder");
 }
 
 int main(int argc, char *argv[])
@@ -66,44 +84,15 @@ int main(int argc, char *argv[])
 	int mousePosX;
 	int mousePosY;
 	double currentTimeStep = 0;
-	bool isSimRunning = true;
+	bool isSimRunning = false;
 	int currentType = 0;
 	bool canOverlapParts = false;
 	bool isPlayingOneStep = false;
+	long frameNumber = 0;
+	bool screenshotMode = false;
+	bool hasSimThisFrame = false;
 
-	char reminder[100] = 	"Hello";
-							"Hello";
-
-	// int test;
-	// test << std::cin;
-
-	// int particulesCounter = 0;
-	// for (int i = 0; i < inputSize; ++i)
-	// {
-	// 	char x = input[i];
-	// 	// continue;
-	// 	switch (x) {
-	// 		case '\n':
-	// 			ySandboxAreaScan += 1;
-	// 			xSandboxAreaScan = -1;
-	// 			break;
-	// 		case ' ':
-	// 			particules[particulesCounter].isNotDefined = 1;
-	// 			break;
-	// 		case '#':
-	// 			particules[particulesCounter].wallflag = 1;
-	// 		default:
-
-	// 			particules[particulesCounter].isNotDefined = 0;
-	// 			particules[particulesCounter].xPos = xSandboxAreaScan;
-	// 			particules[particulesCounter].yPos = ySandboxAreaScan;
-
-	// 			particulesCounter += 1;
-	// 			totalOfParticules = particulesCounter;
-	// 	}
-	// 	xSandboxAreaScan += 1;
-	// }
-
+	double ZOOM_VAL = 4;
 
 	while (gameRunning)
 	{
@@ -111,8 +100,6 @@ int main(int argc, char *argv[])
 
 		while (SDL_PollEvent(&event))
 		{
-			// std::cout<<event.type<<std::endl;
-			// std::cout<<event.button.state<<std::endl;
 			if (event.type == SDL_QUIT)
 			{
 				gameRunning = false;
@@ -140,38 +127,78 @@ int main(int argc, char *argv[])
 				int xPos = floor(mousePosX/ZOOM_VAL);
 				int yPos = floor(mousePosY/ZOOM_VAL);
 
-				bool isCreatePart = true;
-
-				if (true)
+				for (int i = 0; i < 1; ++i)
 				{
+					bool isCreatePart = true;
+							
 					for (int i = 0; i < totalOfParticules; ++i)
 					{
 						xParticuleDistance = xPos - particules[i].xPos;
 						yParticuleDistance = yPos - particules[i].yPos;
 						particulesDistance = sqrt( pow(xParticuleDistance,2.0) + pow(yParticuleDistance,2.0));
-		
+				
 						if (particulesDistance < 1 and !canOverlapParts){
 							isCreatePart = false;
 							break;
 						}
 					}
-				}
+	
+					if (isCreatePart)
+					{
+						Particule part;
+						particules.push_back(part);
+						particules[totalOfParticules].xPos = xPos;
+						particules[totalOfParticules].yPos = yPos;
+						particules[totalOfParticules].wallflag = currentType;
+						totalOfParticules++;
+					}
 
-				if (isCreatePart)
-				{
-					Particule part;
-					particules.push_back(part);
-					particules[totalOfParticules].xPos = xPos;
-					particules[totalOfParticules].yPos = yPos;
-					particules[totalOfParticules].wallflag = currentType;
-					totalOfParticules++;
+					if (i == 0)
+					{
+						xPos = floor(mousePosX/ZOOM_VAL) + 1;
+						yPos = floor(mousePosY/ZOOM_VAL);
+					}
+					if (i == 1)
+					{
+						xPos = floor(mousePosX/ZOOM_VAL) - 1;
+						yPos = floor(mousePosY/ZOOM_VAL);
+					}
+					if (i == 2)
+					{
+						xPos = floor(mousePosX/ZOOM_VAL);
+						yPos = floor(mousePosY/ZOOM_VAL) + 1;
+					}
+					if (i == 3)
+					{
+						xPos = floor(mousePosX/ZOOM_VAL);
+						yPos = floor(mousePosY/ZOOM_VAL) - 1;
+					}
+
 				}
 			}
+			if(event.type == SDL_MOUSEWHEEL)
+    		{
+    		    if(event.wheel.y > 0) // scroll up
+    		    {
+    		         ZOOM_VAL+=.5;
+    		    }
+    		    else if(event.wheel.y < 0) // scroll down
+    		    {
+    		         ZOOM_VAL-=.5;
+    		         if (ZOOM_VAL < 1)
+    		         {
+    		         	ZOOM_VAL = 1;
+    		         }
+    		    }
+		
+    		}
+
 			if (event.type == SDL_KEYDOWN)
 			{
 				switch (event.key.keysym.sym)
 				{
 					case SDLK_SPACE:
+					{
 						isSimRunning = !isSimRunning;
 						if (isSimRunning)
 						{
@@ -182,11 +209,15 @@ int main(int argc, char *argv[])
 							console("Sim pause");
 						}
 						break;
+					}
 					case SDLK_x:
+					{
 						currentType = !currentType;
 						console("Change particule's type");
 						break;
+					}
 					case SDLK_s:
+					{
 						canOverlapParts = !canOverlapParts;
 						if (canOverlapParts)
 						{
@@ -197,33 +228,61 @@ int main(int argc, char *argv[])
 							console("Particule placement don't authorize overlap");
 						}
 						break;
+					}
 					case SDLK_RIGHT:
+					{
 						if (!isSimRunning)
 						{
 							isPlayingOneStep = true;
 							console("Sim plays one step");
 						}
 						break;
+					}
+					case SDLK_t:
+					{
+						saveScreenshot(window.renderer, frameNumber);
+						break;
+					}
+
+					case SDLK_f:
+					{
+						screenshotMode = !screenshotMode;
+						if (screenshotMode)
+						{
+							console("Screenshot mode enable");
+						}
+						else
+						{
+							console("Screenshot mode disable");
+						}
+						break;
+					}
+
+					    
 					case SDLK_i:
+					{
 						std::string s = "There is ";
 						s.append(std::to_string(totalOfParticules));
 						s.append(" particules");
 						char const *message = s.c_str();
 						console(message);
+						break;
+					}
 
+					case SDLK_p:
+					{
+						particules.resize(0);
+						totalOfParticules = 0;
+					}
 				}
 			}
 		}
 
-		window.Clear();
+		window.Clear(C_GRAY);
 		//Game logic
 		if (SDL_GetTicks() - currentTimeStep > TIME_STEP or isPlayingOneStep)
 		{
-			// std::cout<<SDL_GetTicks() - currentTimeStep<<std::endl;
-			// if (SDL_GetTicks() - currentTimeStep > 22)
-			// {
-			// 	std::cout<<totalOfParticules<<std::endl;
-			// }
+
 			currentTimeStep = SDL_GetTicks();
 
 			if (!isSimRunning and !isPlayingOneStep)
@@ -231,16 +290,8 @@ int main(int argc, char *argv[])
 				goto endSim;
 			}
 			isPlayingOneStep = false;
-
-			// Particule part;
-			// particules.push_back(part);
-			// particules[totalOfParticules].xPos = 50;
-			// particules[totalOfParticules].yPos = 20;
-			// particules[totalOfParticules].xVelocity = 1;
-			// // particules[totalOfParticules].wallflag = currentType;
-			// totalOfParticules++;
-			// std::cout<<totalOfParticules<<std::endl;
-
+			frameNumber++;
+			hasSimThisFrame = true;
 
 
 			int particulesCursor, particulesCursor2;
@@ -307,7 +358,7 @@ int main(int argc, char *argv[])
 		}
 		endSim:
 
-
+		// window.DrawRect(Vector2D(), Vector2D(SCREEN_WIDTH,SCREEN_HEIGTH), C_GRAY);
 		
 		for (int i = 0; i < totalOfParticules; ++i)
 		{
@@ -344,6 +395,12 @@ int main(int argc, char *argv[])
 		// std::cout << "run" << std::endl;
 
 		window.Display();
+
+		if (screenshotMode and hasSimThisFrame)
+		{
+			saveScreenshot(window.renderer, frameNumber);
+		}
+		hasSimThisFrame = false;
 	}
 
 	window.CleanUp();
