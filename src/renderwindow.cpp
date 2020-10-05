@@ -3,7 +3,6 @@
 #include <iostream>
 
 #include "RenderWindow.hpp"
-#include "Vector2D.hpp"
 
 RenderWindow::RenderWindow(const char* p_title, int p_w, int p_h)
 	:window(NULL), renderer(NULL)
@@ -40,9 +39,9 @@ void RenderWindow::Clear()
 	SDL_RenderClear(renderer);
 }
 
-void RenderWindow::Clear(Vector2D pColor)
+void RenderWindow::Clear(int pRed, int pGreen, int pBlue)
 {
-	SDL_SetRenderDrawColor(renderer, pColor.x, pColor.y, pColor.z, pColor.w);
+	SDL_SetRenderDrawColor(renderer, pRed, pGreen, pBlue, 255);
 	SDL_RenderClear(renderer);
 	SDL_SetRenderDrawColor(renderer,0, 0, 0, 0);
 }
@@ -73,15 +72,15 @@ void RenderWindow::Display()
 	SDL_RenderPresent(renderer);
 }
 
-void RenderWindow::DrawRect(Vector2D pPos, Vector2D pWidth, Vector2D pColor)
+void RenderWindow::DrawRect(double pPosLeft, double pPosTop, double pWidthWidth, double pWidthHeight, int pRed, int pGreen, int pBlue)
 {
-	SDL_SetRenderDrawColor(renderer, pColor.x, pColor.y, pColor.z, pColor.w);
+	SDL_SetRenderDrawColor(renderer,pRed, pGreen, pBlue, 255);
 
 	SDL_Rect myRect;
-	myRect.x = pPos.x;
-	myRect.y = pPos.y;
-	myRect.w = pWidth.x;
-	myRect.h = pWidth.y;
+	myRect.x = pPosLeft;
+	myRect.y = pPosTop;
+	myRect.w = pWidthWidth;
+	myRect.h = pWidthHeight;
 
 	SDL_RenderFillRect(renderer, &myRect);
 

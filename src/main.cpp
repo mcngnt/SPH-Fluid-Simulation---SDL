@@ -3,21 +3,14 @@
 #include <SDL.h>
 #include <SDL_image.h>
 #include <vector>
+#include <cmath>
 
 #include "RenderWindow.hpp"
-#include "Vector2D.hpp"
 
 #define SCREEN_WIDTH 1080
 #define SCREEN_HEIGTH 720
 #define TIME_STEP 20
-// #define ZOOM_VAL 4
-#define PARTICULE_SIZE_DRAW 2
-
-Vector2D C_RED(255, 0, 0, 255);
-Vector2D C_BLUE(0, 0, 255, 255);
-Vector2D C_GRAY(0, 10, 15, 255);
-
-// int xSandboxAreaScan = 0, ySandboxAreaScan = 0;
+#define FLUID_DRAW_FACTOR 2
 
 struct Particule {
 	double xPos;
@@ -28,18 +21,23 @@ struct Particule {
 	double yForce;
 	double xVelocity;
 	double yVelocity;
-	int isNotDefined;
 };
 
+int	x, y, totalOfParticules;
 double xParticuleDistance, yParticuleDistance;
 double particulesInteraction;
 double particulesDistance;
+double xScreenPos, yScreenPos;
+double xParticuleDrawSize, yParticuleDrawSize;
+int drawRed, drawGreen, drawBlue;
+double particuleDrawGradient;
 
-int	x, y, totalOfParticules;
+
+double zoomFactor = 4;
 double gravity = .3, pressure = 4, viscosity = 7;
 
 
-std::vector<Particule> particules(1);
+std::vector<Particule> particules(0);
 
 void console(const char* pMessage)
 {
@@ -91,8 +89,8 @@ int main(int argc, char *argv[])
 	long frameNumber = 0;
 	bool screenshotMode = false;
 	bool hasSimThisFrame = false;
+	int pencilSize = 1;
 
-	double ZOOM_VAL = 4;
 
 	while (gameRunning)
 	{
@@ -106,8 +104,8 @@ int main(int argc, char *argv[])
 			}
 			if (event.button.button == SDL_BUTTON_RIGHT or event.button.button == SDL_BUTTON_MIDDLE)
 			{
-				int xPos = floor(mousePosX/ZOOM_VAL);
-				int yPos = floor(mousePosY/ZOOM_VAL);
+				int xPos = floor(mousePosX/zoomFactor);
+				int yPos = floor(mousePosY/zoomFactor);
 
 				for (int i = 0; i < totalOfParticules; ++i)
 				{
@@ -124,10 +122,10 @@ int main(int argc, char *argv[])
 			}
 			if (event.button.button == SDL_BUTTON_LEFT)
 			{
-				int xPos = floor(mousePosX/ZOOM_VAL);
-				int yPos = floor(mousePosY/ZOOM_VAL);
+				int xPos = floor(mousePosX/zoomFactor);
+				int yPos = floor(mousePosY/zoomFactor);
 
-				for (int i = 0; i < 1; ++i)
+				for (int i = 0; i < pencilSize; ++i)
 				{
 					bool isCreatePart = true;
 							
@@ -155,44 +153,41 @@ int main(int argc, char *argv[])
 
 					if (i == 0)
 					{
-						xPos = floor(mousePosX/ZOOM_VAL) + 1;
-						yPos = floor(mousePosY/ZOOM_VAL);
+						xPos = floor(mousePosX/zoomFactor) + 1;
+						yPos = floor(mousePosY/zoomFactor);
 					}
 					if (i == 1)
 					{
-						xPos = floor(mousePosX/ZOOM_VAL) - 1;
-						yPos = floor(mousePosY/ZOOM_VAL);
+						xPos = floor(mousePosX/zoomFactor) - 1;
+						yPos = floor(mousePosY/zoomFactor);
 					}
 					if (i == 2)
 					{
-						xPos = floor(mousePosX/ZOOM_VAL);
-						yPos = floor(mousePosY/ZOOM_VAL) + 1;
+						xPos = floor(mousePosX/zoomFactor);
+						yPos = floor(mousePosY/zoomFactor) + 1;
 					}
 					if (i == 3)
 					{
-						xPos = floor(mousePosX/ZOOM_VAL);
-						yPos = floor(mousePosY/ZOOM_VAL) - 1;
+						xPos = floor(mousePosX/zoomFactor);
+						yPos = floor(mousePosY/zoomFactor) - 1;
 					}
-
 				}
 			}
 			if(event.type == SDL_MOUSEWHEEL)
     		{
-    		    if(event.wheel.y > 0) // scroll up
+    		    if(event.wheel.y > 0)
     		    {
-    		         ZOOM_VAL+=.5;
+    		         zoomFactor+=.5;
     		    }
-    		    else if(event.wheel.y < 0) // scroll down
+    		    else if(event.wheel.y < 0)
     		    {
-    		         ZOOM_VAL-=.5;
-    		         if (ZOOM_VAL < 1)
+    		         zoomFactor-=.5;
+    		         if (zoomFactor < 1)
     		         {
-    		         	ZOOM_VAL = 1;
+    		         	zoomFactor = 1;
     		         }
     		    }
-		
     		}
-
 			if (event.type == SDL_KEYDOWN)
 			{
 				switch (event.key.keysym.sym)
@@ -243,7 +238,6 @@ int main(int argc, char *argv[])
 						saveScreenshot(window.renderer, frameNumber);
 						break;
 					}
-
 					case SDLK_f:
 					{
 						screenshotMode = !screenshotMode;
@@ -257,8 +251,6 @@ int main(int argc, char *argv[])
 						}
 						break;
 					}
-
-					    
 					case SDLK_i:
 					{
 						std::string s = "There is ";
@@ -268,18 +260,30 @@ int main(int argc, char *argv[])
 						console(message);
 						break;
 					}
-
 					case SDLK_p:
 					{
 						particules.resize(0);
 						totalOfParticules = 0;
+						break;
+					}
+					case SDLK_h:
+					{
+						pencilSize *= 5;
+						if (pencilSize > 5)
+						{
+							pencilSize = 1;
+						}
+						std::string s = "Pencil size changed to ";
+						s.append(std::to_string(pencilSize));
+						char const *message = s.c_str();
+						console(message);
+						break;
 					}
 				}
 			}
 		}
 
-		window.Clear(C_GRAY);
-		//Game logic
+		window.Clear(0,10,15);
 		if (SDL_GetTicks() - currentTimeStep > TIME_STEP or isPlayingOneStep)
 		{
 
@@ -296,26 +300,24 @@ int main(int argc, char *argv[])
 
 			int particulesCursor, particulesCursor2;
 
-			// Iterate over every pair of particules to calculate the densities
 			for (particulesCursor = 0; particulesCursor < totalOfParticules; particulesCursor++){
-				// density of "wall" particules is high, other particules will bounce off them.
 				particules[particulesCursor].density = particules[particulesCursor].wallflag * 9;
 	
 					for (particulesCursor2 = 0; particulesCursor2 < totalOfParticules; particulesCursor2++){
 	
 						xParticuleDistance = particules[particulesCursor].xPos - particules[particulesCursor2].xPos;
 						yParticuleDistance = particules[particulesCursor].yPos - particules[particulesCursor2].yPos;
-						particulesDistance = sqrt( pow(xParticuleDistance,2.0) + pow(yParticuleDistance,2.0));
-						particulesInteraction = particulesDistance / 2.0 - 1.0;
+						particulesDistance = xParticuleDistance*xParticuleDistance + yParticuleDistance*yParticuleDistance;
 	
-						if (floor(1.0 - particulesInteraction) > 0){
+						if (particulesDistance < 4){
+							particulesDistance = sqrt(particulesDistance);
+							particulesInteraction = particulesDistance / 2.0 - 1.0;
 							particules[particulesCursor].density += particulesInteraction * particulesInteraction;
 						}
+
 					}
-					// std::cout<<particules[particulesCursor].density<<std::endl;
 				}
 	
-				// Iterate over every pair of particules to calculate the forces
 				for (particulesCursor = 0; particulesCursor < totalOfParticules; particulesCursor++){
 					particules[particulesCursor].yForce = gravity;
 					particules[particulesCursor].xForce = 0;
@@ -324,15 +326,13 @@ int main(int argc, char *argv[])
 	
 						xParticuleDistance = particules[particulesCursor].xPos - particules[particulesCursor2].xPos;
 						yParticuleDistance = particules[particulesCursor].yPos - particules[particulesCursor2].yPos;
-						particulesDistance = sqrt( pow(xParticuleDistance,2.0) + pow(yParticuleDistance,2.0));
-						particulesInteraction = particulesDistance / 2.0 - 1.0;
+						particulesDistance = xParticuleDistance*xParticuleDistance + yParticuleDistance*yParticuleDistance;
 	
-						// force is updated only if particules are close enough
-						if (floor(1.0 - particulesInteraction) > 0){
-							particules[particulesCursor].xForce += particulesInteraction * (xParticuleDistance * (3 - particules[particulesCursor].density - particules[particulesCursor2].density) * pressure + particules[particulesCursor].xVelocity *
-							  viscosity - particules[particulesCursor2].xVelocity * viscosity) / particules[particulesCursor].density;
-							particules[particulesCursor].yForce += particulesInteraction * (yParticuleDistance * (3 - particules[particulesCursor].density - particules[particulesCursor2].density) * pressure + particules[particulesCursor].yVelocity *
-							  viscosity - particules[particulesCursor2].yVelocity * viscosity) / particules[particulesCursor].density;
+						if (particulesDistance < 4){
+							particulesDistance = sqrt(particulesDistance);
+							particulesInteraction = particulesDistance / 2.0 - 1.0;
+							particules[particulesCursor].xForce += particulesInteraction * (xParticuleDistance * (3 - particules[particulesCursor].density - particules[particulesCursor2].density) * pressure + particules[particulesCursor].xVelocity * viscosity - particules[particulesCursor2].xVelocity * viscosity) / particules[particulesCursor].density;
+							particules[particulesCursor].yForce += particulesInteraction * (yParticuleDistance * (3 - particules[particulesCursor].density - particules[particulesCursor2].density) * pressure + particules[particulesCursor].yVelocity * viscosity - particules[particulesCursor2].yVelocity * viscosity) / particules[particulesCursor].density;
 						}
 					}
 				}
@@ -341,7 +341,7 @@ int main(int argc, char *argv[])
 	
 					if (!particules[particulesCursor].wallflag) {
 						
-						if ( sqrt( pow(particules[particulesCursor].xForce ,2.0) + pow(particules[particulesCursor].yForce,2.0)) < 4.2) {
+						if (particules[particulesCursor].xForce*particules[particulesCursor].xForce + particules[particulesCursor].yForce*particules[particulesCursor].yForce < 4.2*4.2) {
 							particules[particulesCursor].xVelocity += particules[particulesCursor].xForce / 10;
 							particules[particulesCursor].yVelocity += particules[particulesCursor].yForce / 10;
 						}
@@ -357,42 +357,44 @@ int main(int argc, char *argv[])
 			}
 		}
 		endSim:
-
-		// window.DrawRect(Vector2D(), Vector2D(SCREEN_WIDTH,SCREEN_HEIGTH), C_GRAY);
 		
 		for (int i = 0; i < totalOfParticules; ++i)
 		{
-			if (particules[i].isNotDefined != 1)
-			{
-				Vector2D pos(particules[i].xPos * ZOOM_VAL, particules[i].yPos * ZOOM_VAL);
-				if (pos.y > SCREEN_HEIGTH)
-				{
-					particules.erase(particules.begin()+i);
-					totalOfParticules--;
-				}
-				Vector2D width(ZOOM_VAL,ZOOM_VAL);
-				Vector2D color = C_BLUE;
-				if (particules[i].wallflag == 1)
-				{
-					color = C_RED;
-				}
-				else
-				{
-					width = width.Mult(PARTICULE_SIZE_DRAW);
-					double gradientVal = particules[i].density / 5;
-					// double gradientVal = (abs(particules[i].xVelocity) + abs(particules[i].yVelocity))/5;
-					if (gradientVal > 1)
-					{
-						gradientVal = 1;
-					}
-					color = color.Add(C_RED.Mult(gradientVal));
+			xScreenPos = particules[i].xPos * zoomFactor;
+			yScreenPos = particules[i].yPos * zoomFactor;
 
-				}
-				window.DrawRect(pos, width, color);
+			if (yScreenPos > SCREEN_HEIGTH)
+			{
+				particules.erase(particules.begin()+i);
+				totalOfParticules--;
 			}
-			
+			xParticuleDrawSize = zoomFactor;
+			yParticuleDrawSize = zoomFactor;
+
+			drawRed = 0;
+			drawGreen = 0;
+			drawBlue = 255;
+			if (particules[i].wallflag == 1)
+			{
+				drawRed = 255;
+				drawBlue = 0;
+			}
+			else
+			{
+				xParticuleDrawSize *= FLUID_DRAW_FACTOR;
+				yParticuleDrawSize *= FLUID_DRAW_FACTOR;
+				particuleDrawGradient = particules[i].density / 5;
+				//particuleDrawGradient = (abs(particules[i].xVelocity) + abs(particules[i].yVelocity))/5;
+				if (particuleDrawGradient > 1)
+				{
+					particuleDrawGradient = 1;
+				}
+				drawRed = 255 * particuleDrawGradient;
+
+			}
+
+			window.DrawRect(xScreenPos, yScreenPos, xParticuleDrawSize, yParticuleDrawSize, drawRed, drawGreen, drawBlue);
 		}
-		// std::cout << "run" << std::endl;
 
 		window.Display();
 

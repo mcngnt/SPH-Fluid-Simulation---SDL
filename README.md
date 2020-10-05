@@ -22,3 +22,5 @@ F for activating the screenshot mode, the sim takes a screenshot every frame
 I for knowing the current number of particules in the sim
 
 P for deleting all the particules
+
+H change pencil size
