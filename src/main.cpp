@@ -30,7 +30,8 @@ double particulesDistance;
 double xScreenPos, yScreenPos;
 double xParticuleDrawSize, yParticuleDrawSize;
 int drawRed, drawGreen, drawBlue;
-double particuleDrawGradient;
+double densityDrawGradient, velocityDrawGradient;
+int mousePosX, mousePosY;
 
 
 double zoomFactor = 4;
@@ -79,8 +80,6 @@ int main(int argc, char *argv[])
 
 	bool gameRunning = true;
 	SDL_Event event;
-	int mousePosX;
-	int mousePosY;
 	double currentTimeStep = 0;
 	bool isSimRunning = false;
 	int currentType = 0;
@@ -90,6 +89,7 @@ int main(int argc, char *argv[])
 	bool screenshotMode = false;
 	bool hasSimThisFrame = false;
 	int pencilSize = 1;
+	bool drawParticuleDensity = true;
 
 
 	while (gameRunning)
@@ -279,6 +279,10 @@ int main(int argc, char *argv[])
 						console(message);
 						break;
 					}
+					case SDLK_u:
+					{
+						drawParticuleDensity = !drawParticuleDensity;
+					}
 				}
 			}
 		}
@@ -383,14 +387,21 @@ int main(int argc, char *argv[])
 			{
 				xParticuleDrawSize *= FLUID_DRAW_FACTOR;
 				yParticuleDrawSize *= FLUID_DRAW_FACTOR;
-				particuleDrawGradient = particules[i].density / 5;
-				//particuleDrawGradient = (abs(particules[i].xVelocity) + abs(particules[i].yVelocity))/5;
-				if (particuleDrawGradient > 1)
+				if (drawParticuleDensity)
 				{
-					particuleDrawGradient = 1;
+					densityDrawGradient = particules[i].density / 5;
+					velocityDrawGradient = (abs(particules[i].xVelocity) + abs(particules[i].yVelocity))/5;
+					if (densityDrawGradient > 1)
+					{
+						densityDrawGradient = 1;
+					}
+					if (velocityDrawGradient > 1)
+					{
+						velocityDrawGradient = 1;
+					}
+					drawRed = 255 * densityDrawGradient;
+					drawGreen = 255 * velocityDrawGradient;
 				}
-				drawRed = 255 * particuleDrawGradient;
-
 			}
 
 			window.DrawRect(xScreenPos, yScreenPos, xParticuleDrawSize, yParticuleDrawSize, drawRed, drawGreen, drawBlue);

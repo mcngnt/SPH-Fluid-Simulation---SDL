@@ -3,7 +3,7 @@
 
  ![](demo.gif)
 
-Use left click for placing particules.
+Left click for placing particules.
 
 Right and middle click for deleting particules.
 
@@ -24,3 +24,5 @@ I for knowing the current number of particules in the sim
 P for deleting all the particules
 
 H change pencil size
+
+U for disable the density view
