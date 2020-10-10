@@ -4,12 +4,16 @@
 #include <SDL_image.h>
 #include <vector>
 #include <cmath>
+#include <string>
+#include <fstream>
+
+
 
 #include "RenderWindow.hpp"
 
 #define SCREEN_WIDTH 1080
 #define SCREEN_HEIGTH 720
-#define TIME_STEP 20
+#define MAIN_TIME_STEP 20
 #define FLUID_DRAW_FACTOR 2
 
 struct Particule {
@@ -32,17 +36,112 @@ double xParticuleDrawSize, yParticuleDrawSize;
 int drawRed, drawGreen, drawBlue;
 double densityDrawGradient, velocityDrawGradient;
 int mousePosX, mousePosY;
+std::string inputFile;
 
 
 double zoomFactor = 4;
-double gravity = .3, pressure = 4, viscosity = 7;
+double timeStep = MAIN_TIME_STEP;
+double gravity = 0.3, pressure = 4, viscosity = 7;
+unsigned long frameNumber;
 
 
 std::vector<Particule> particules(0);
 
-void console(const char* pMessage)
+void console(std::string pMessage)
 {
-	std::cout << "CONSOLE SAYING -> " << pMessage << std::endl;
+	std::cout << std::endl << "CONSOLE SAYING -> " << pMessage;
+}
+
+void openGame(std::string pInput)
+{
+	std::string fileName("saves\\");
+	fileName.append(pInput);
+
+	std::ifstream file;
+	file.open(fileName);
+	std::string line;
+
+    if (file.is_open())
+    {
+    	particules.resize(0);
+		getline(file,line);
+		totalOfParticules = std::stoi(line);
+		getline(file,line);
+		zoomFactor = std::stod(line);
+		getline(file,line);
+		frameNumber = std::stoi(line);
+    	while (getline(file,line))
+    	{
+    	    std::vector<std::string> stringParts;
+    	    stringParts.push_back("");
+    	    for(std::string::size_type i = 0; i < line.size(); ++i)
+    	    {
+   				if (line[i] == ' ')
+   				{
+   					stringParts.push_back("");
+   				}
+   				stringParts[stringParts.size()-1].append(1, line[i]);
+			}
+
+			Particule part;
+			part.xPos = std::stod(stringParts[0]);
+			part.yPos = std::stod(stringParts[1]);
+			part.density = std::stod(stringParts[2]);
+			part.wallflag = std::stod(stringParts[3]);
+			part.xVelocity = std::stod(stringParts[4]);
+			part.yVelocity = std::stod(stringParts[5]);
+
+			particules.push_back(part);
+    	}
+    }
+    else
+    {
+    	console("Can't open file !");
+    }
+}
+
+void saveGame(long pFramesNumber)
+{
+	std::string fileName = "saves/";
+	fileName.append(std::to_string(pFramesNumber));
+	fileName.append(".sfs");
+
+	std::string content = std::to_string(totalOfParticules);
+	content.append("\n");
+	content.append(std::to_string(zoomFactor));
+	content.append("\n");
+	content.append(std::to_string(frameNumber));
+	content.append("\n");
+	
+
+	for (int i = 0; i < totalOfParticules; ++i)
+	{
+		Particule myPart = particules[i];
+		std::string info = "";
+		info.append(std::to_string(myPart.xPos));
+		info.append(" ");
+		info.append(std::to_string(myPart.yPos));
+		info.append(" ");
+		info.append(std::to_string(myPart.density));
+		info.append(" ");
+		info.append(std::to_string(myPart.wallflag));
+		info.append(" ");
+		info.append(std::to_string(myPart.xVelocity));
+		info.append(" ");
+		info.append(std::to_string(myPart.yVelocity));
+		info.append("\n");
+		content.append(info);
+	}
+
+	std::ofstream file;
+	file.open(fileName);
+	file << content;
+
+	std::string message = "The save ";
+	message.append(std::to_string(pFramesNumber));
+	message.append(".sfs was save in saves folder");
+
+	console(message);
 }
 
 void saveScreenshot(SDL_Renderer* pRenderer, long pFramesNumber)
@@ -61,7 +160,11 @@ void saveScreenshot(SDL_Renderer* pRenderer, long pFramesNumber)
 	}
 	SDL_FreeSurface(sshot);
 
-	console("Screenshot saved in images folder");
+	std::string message = "Screenshot ";
+	message.append(std::to_string(pFramesNumber));
+	message.append(".bmp saved in images folder");
+
+	console(message);
 }
 
 int main(int argc, char *argv[])
@@ -85,11 +188,11 @@ int main(int argc, char *argv[])
 	int currentType = 0;
 	bool canOverlapParts = false;
 	bool isPlayingOneStep = false;
-	long frameNumber = 0;
 	bool screenshotMode = false;
 	bool hasSimThisFrame = false;
 	int pencilSize = 1;
 	bool drawParticuleDensity = true;
+
 
 
 	while (gameRunning)
@@ -111,10 +214,10 @@ int main(int argc, char *argv[])
 				{
 					xParticuleDistance = xPos - particules[i].xPos;
 					yParticuleDistance = yPos - particules[i].yPos;
-					particulesDistance = sqrt( pow(xParticuleDistance,2.0) + pow(yParticuleDistance,2.0));
+					particulesDistance = pow(xParticuleDistance,2.0) + pow(yParticuleDistance,2.0);
 					particulesInteraction = particulesDistance / 2.0 - 1.0;
 	
-					if (particulesDistance < 5){
+					if (particulesDistance < pow(pencilSize*5, 2)){
 						particules.erase(particules.begin() + i);
 						totalOfParticules--;
 					}
@@ -125,51 +228,38 @@ int main(int argc, char *argv[])
 				int xPos = floor(mousePosX/zoomFactor);
 				int yPos = floor(mousePosY/zoomFactor);
 
-				for (int i = 0; i < pencilSize; ++i)
+				for (int xi = xPos-pencilSize; xi < xPos+pencilSize; ++xi)
 				{
-					bool isCreatePart = true;
-							
-					for (int i = 0; i < totalOfParticules; ++i)
+					for (int yi = yPos-pencilSize; yi < yPos+pencilSize; ++yi)
 					{
-						xParticuleDistance = xPos - particules[i].xPos;
-						yParticuleDistance = yPos - particules[i].yPos;
-						particulesDistance = sqrt( pow(xParticuleDistance,2.0) + pow(yParticuleDistance,2.0));
-				
-						if (particulesDistance < 1 and !canOverlapParts){
-							isCreatePart = false;
-							break;
+						if(pow(xi-xPos,2.0) + pow(yi-yPos,2.0) >= pencilSize)
+						{
+							continue;
 						}
-					}
-	
-					if (isCreatePart)
-					{
-						Particule part;
-						particules.push_back(part);
-						particules[totalOfParticules].xPos = xPos;
-						particules[totalOfParticules].yPos = yPos;
-						particules[totalOfParticules].wallflag = currentType;
-						totalOfParticules++;
-					}
 
-					if (i == 0)
-					{
-						xPos = floor(mousePosX/zoomFactor) + 1;
-						yPos = floor(mousePosY/zoomFactor);
-					}
-					if (i == 1)
-					{
-						xPos = floor(mousePosX/zoomFactor) - 1;
-						yPos = floor(mousePosY/zoomFactor);
-					}
-					if (i == 2)
-					{
-						xPos = floor(mousePosX/zoomFactor);
-						yPos = floor(mousePosY/zoomFactor) + 1;
-					}
-					if (i == 3)
-					{
-						xPos = floor(mousePosX/zoomFactor);
-						yPos = floor(mousePosY/zoomFactor) - 1;
+						bool isCreatePart = true;
+
+						for (int i = 0; i < totalOfParticules; ++i)
+						{
+							xParticuleDistance = xi - particules[i].xPos;
+							yParticuleDistance = yi - particules[i].yPos;
+							particulesDistance = pow(xParticuleDistance,2.0) + pow(yParticuleDistance,2.0);
+
+							if (particulesDistance < 1 and !canOverlapParts){
+								isCreatePart = false;
+								break;
+							}
+						}
+	
+						if (isCreatePart)
+						{
+							Particule part;
+							particules.push_back(part);
+							particules[totalOfParticules].xPos = xi;
+							particules[totalOfParticules].yPos = yi;
+							particules[totalOfParticules].wallflag = currentType;
+							totalOfParticules++;
+						}
 					}
 				}
 			}
@@ -244,10 +334,12 @@ int main(int argc, char *argv[])
 						if (screenshotMode)
 						{
 							console("Screenshot mode enable");
+							timeStep = 0;
 						}
 						else
 						{
 							console("Screenshot mode disable");
+							timeStep = MAIN_TIME_STEP;
 						}
 						break;
 					}
@@ -256,8 +348,7 @@ int main(int argc, char *argv[])
 						std::string s = "There is ";
 						s.append(std::to_string(totalOfParticules));
 						s.append(" particules");
-						char const *message = s.c_str();
-						console(message);
+						console(s);
 						break;
 					}
 					case SDLK_p:
@@ -268,27 +359,40 @@ int main(int argc, char *argv[])
 					}
 					case SDLK_h:
 					{
-						pencilSize *= 5;
-						if (pencilSize > 5)
+						pencilSize *= 2;
+						if (pencilSize > 1000)
 						{
 							pencilSize = 1;
 						}
 						std::string s = "Pencil size changed to ";
 						s.append(std::to_string(pencilSize));
-						char const *message = s.c_str();
-						console(message);
+						console(s);
+						break;
+					}
+					case SDLK_n:
+					{
+						saveGame(frameNumber);
+						break;
+					}
+					case SDLK_l:
+					{
+						console("Enter the save name : ");
+						std::string fileName;
+						std::cin >> fileName;
+						openGame(fileName);
 						break;
 					}
 					case SDLK_u:
 					{
 						drawParticuleDensity = !drawParticuleDensity;
+						break;
 					}
 				}
 			}
 		}
 
 		window.Clear(0,10,15);
-		if (SDL_GetTicks() - currentTimeStep > TIME_STEP or isPlayingOneStep)
+		if (SDL_GetTicks() - currentTimeStep > timeStep or isPlayingOneStep)
 		{
 
 			currentTimeStep = SDL_GetTicks();
@@ -406,6 +510,8 @@ int main(int argc, char *argv[])
 
 			window.DrawRect(xScreenPos, yScreenPos, xParticuleDrawSize, yParticuleDrawSize, drawRed, drawGreen, drawBlue);
 		}
+
+		// console(std::to_string(totalOfParticules).c_str());
 
 		window.Display();
 
