@@ -57,7 +57,9 @@ void openGame(std::string pInput)
 	std::string fileName("saves\\");
 	fileName.append(pInput);
 
+	// console("check1");
 	std::ifstream file;
+	// console("check2");
 	file.open(fileName);
 	std::string line;
 
@@ -133,15 +135,22 @@ void saveGame(long pFramesNumber)
 		content.append(info);
 	}
 
+	// console(fileName);
 	std::ofstream file;
 	file.open(fileName);
-	file << content;
-
-	std::string message = "The save ";
-	message.append(std::to_string(pFramesNumber));
-	message.append(".sfs was save in saves folder");
-
-	console(message);
+	if (file.is_open())
+	{
+		file << content;
+		std::string message = "The save ";
+		message.append(std::to_string(pFramesNumber));
+		message.append(".sfs was save in saves folder");
+		console(message);
+	}
+	else
+	{
+		console("Can't save file !");
+	}
+	
 }
 
 void saveScreenshot(SDL_Renderer* pRenderer, long pFramesNumber)
@@ -217,7 +226,7 @@ int main(int argc, char *argv[])
 					particulesDistance = pow(xParticuleDistance,2.0) + pow(yParticuleDistance,2.0);
 					particulesInteraction = particulesDistance / 2.0 - 1.0;
 	
-					if (particulesDistance < pow(pencilSize*5, 2)){
+					if (particulesDistance < pow(5+pencilSize/25, 2)){
 						particules.erase(particules.begin() + i);
 						totalOfParticules--;
 					}
@@ -360,7 +369,7 @@ int main(int argc, char *argv[])
 					case SDLK_h:
 					{
 						pencilSize *= 2;
-						if (pencilSize > 1000)
+						if (pencilSize > 2000)
 						{
 							pencilSize = 1;
 						}
