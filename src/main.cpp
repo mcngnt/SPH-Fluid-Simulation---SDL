@@ -37,6 +37,7 @@ int drawRed, drawGreen, drawBlue;
 double densityDrawGradient, velocityDrawGradient;
 int mousePosX, mousePosY;
 std::string inputFile;
+std::string mainFileName = " ";
 
 
 double zoomFactor = 4;
@@ -102,10 +103,10 @@ void openGame(std::string pInput)
     }
 }
 
-void saveGame(long pFramesNumber)
+void saveGame(std::string pFileName)
 {
 	std::string fileName = "saves/";
-	fileName.append(std::to_string(pFramesNumber));
+	fileName.append(pFileName);
 	fileName.append(".sfs");
 
 	std::string content = std::to_string(totalOfParticules);
@@ -142,7 +143,7 @@ void saveGame(long pFramesNumber)
 	{
 		file << content;
 		std::string message = "The save ";
-		message.append(std::to_string(pFramesNumber));
+		message.append(pFileName);
 		message.append(".sfs was save in saves folder");
 		console(message);
 	}
@@ -344,6 +345,11 @@ int main(int argc, char *argv[])
 						{
 							console("Screenshot mode enable");
 							timeStep = 0;
+							if (mainFileName == " ")
+							{
+								console("Enter the save name : ");
+								std::cin >> mainFileName;
+							}
 						}
 						else
 						{
@@ -380,7 +386,7 @@ int main(int argc, char *argv[])
 					}
 					case SDLK_n:
 					{
-						saveGame(frameNumber);
+						saveGame(std::to_string(frameNumber));
 						break;
 					}
 					case SDLK_l:
@@ -527,6 +533,7 @@ int main(int argc, char *argv[])
 		if (screenshotMode and hasSimThisFrame)
 		{
 			saveScreenshot(window.renderer, frameNumber);
+			saveGame(mainFileName);
 		}
 		hasSimThisFrame = false;
 	}
