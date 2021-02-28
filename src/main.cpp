@@ -55,7 +55,16 @@ unsigned long frameNumber;
 // int gridWidth = ;
 // int gridHeight = (SCREEN_HEIGTH - SCREEN_HEIGTH % 100)/100;
 
+float sqrt1(const float &n) 
+{
+   static union{int i; float f;} u;
+   u.i = 0x5F375A86 - (*(int*)&n >> 1);
+   return (int(3) - n * u.f * u.f) * n * u.f * 0.5f;
+}
+
 std::vector<int> gridCell[GRID_CELL_W][GRID_CELL_H];
+
+std::vector<int> liquidParticlesID;
 
 std::vector<Particule> particules(0);
 
@@ -485,10 +494,11 @@ int main(int argc, char *argv[])
 			hasSimThisFrame = true;
 
 
-			int particulesCursor, particulesCursor2;
+			int particulesCursor;
 
 			// std::cout <<  "---" << std::endl;
 
+			liquidParticlesID.clear();
 			for (int x = 0; x < GRID_CELL_W; ++x)
 			{
 				for (int y = 0; y < GRID_CELL_H; ++y)
@@ -510,6 +520,14 @@ int main(int argc, char *argv[])
 
 				particules[particulesCursor].gridX = gridPosX;
 				particules[particulesCursor].gridY = gridPosY;
+				if (particules[particulesCursor].wallflag == 0)
+				{
+					liquidParticlesID.push_back(particulesCursor);
+				}
+				else
+				{
+					particules[particulesCursor].density = particules[particulesCursor].wallflag*9;
+				}
 				// std:: cout << gridPosX << " " << gridPosY << std::endl;
 
 				gridCell[gridPosX][gridPosY].push_back(particulesCursor);
@@ -517,8 +535,14 @@ int main(int argc, char *argv[])
 			}
 			// std::cout <<  "setup" << std::endl;
 
-			for (particulesCursor = 0; particulesCursor < totalOfParticules; particulesCursor++){
-				particules[particulesCursor].density = particules[particulesCursor].wallflag * 9;
+			for (unsigned i = 0; i < liquidParticlesID.size(); ++i)
+			{
+				particulesCursor = liquidParticlesID[i];
+				particules[particulesCursor].density = 0;
+				// if (particules[particulesCursor].wallflag)
+				// {
+				// 	continue;
+				// }
 				std::pair<int, int> centralGridCoord;
 				centralGridCoord.first = particules[particulesCursor].gridX;
 				centralGridCoord.second = particules[particulesCursor].gridY;
@@ -542,7 +566,7 @@ int main(int argc, char *argv[])
 						particulesDistance = xParticuleDistance*xParticuleDistance + yParticuleDistance*yParticuleDistance;
 	
 						if (particulesDistance < 4){
-							particulesDistance = sqrt(particulesDistance);
+							particulesDistance = sqrt1(particulesDistance);
 							particulesInteraction = particulesDistance / 2.0 - 1.0;
 							particules[particulesCursor].density += particulesInteraction * particulesInteraction;
 						}
@@ -595,7 +619,7 @@ int main(int argc, char *argv[])
 	
 							if (particulesDistance < 4)
 							{
-								particulesDistance = sqrt(particulesDistance);
+								particulesDistance = sqrt1(particulesDistance);
 								particulesInteraction = particulesDistance / 2.0 - 1.0;
 								particules[particulesCursor].xForce += particulesInteraction * (xParticuleDistance * (3 - particules[particulesCursor].density - particules[cellParticulesID[i]].density) * pressure + particules[particulesCursor].xVelocity * viscosity - particules[cellParticulesID[i]].xVelocity * viscosity) / particules[particulesCursor].density;
 								particules[particulesCursor].yForce += particulesInteraction * (yParticuleDistance * (3 - particules[particulesCursor].density - particules[cellParticulesID[i]].density) * pressure + particules[particulesCursor].yVelocity * viscosity - particules[cellParticulesID[i]].yVelocity * viscosity) / particules[particulesCursor].density;
