@@ -1,6 +1,6 @@
 #pragma once
 #include <SDL.h>
-#include <SDL_image.h>
+// #include <SDL_image.h>
 
 
 
@@ -8,7 +8,7 @@ class RenderWindow
 {
 public:
 	RenderWindow(const char* p_title, int p_w, int p_h);
-	SDL_Texture* LoadTexture(const char* p_FilePath);
+	// SDL_Texture* LoadTexture(const char* p_FilePath);
 	void CleanUp();
 	void Clear();
 	void Clear(int pRed, int pGreen, int pBlue);

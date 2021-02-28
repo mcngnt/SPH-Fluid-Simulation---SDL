@@ -1,7 +1,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <SDL.h>
-#include <SDL_image.h>
+// #include <SDL_image.h>
 #include <vector>
 #include <cmath>
 #include <string>
@@ -15,6 +15,9 @@
 #define SCREEN_HEIGTH 720
 #define MAIN_TIME_STEP 20
 #define FLUID_DRAW_FACTOR 2
+#define CELL_SIZE 10
+#define GRID_CELL_W (SCREEN_WIDTH - SCREEN_WIDTH % CELL_SIZE)/CELL_SIZE + 1
+#define GRID_CELL_H (SCREEN_HEIGTH - SCREEN_HEIGTH % CELL_SIZE)/CELL_SIZE + 1
 
 struct Particule {
 	double xPos;
@@ -25,9 +28,12 @@ struct Particule {
 	double yForce;
 	double xVelocity;
 	double yVelocity;
+	int gridX;
+	int gridY;
 };
 
-int	x, y, totalOfParticules;
+int	totalOfParticules;
+int gridPosX, gridPosY;
 double xParticuleDistance, yParticuleDistance;
 double particulesInteraction;
 double particulesDistance;
@@ -35,6 +41,7 @@ double xScreenPos, yScreenPos;
 double xParticuleDrawSize, yParticuleDrawSize;
 int drawRed, drawGreen, drawBlue;
 double densityDrawGradient, velocityDrawGradient;
+
 int mousePosX, mousePosY;
 std::string inputFile;
 std::string mainFileName = " ";
@@ -45,6 +52,10 @@ double timeStep = MAIN_TIME_STEP;
 double gravity = 0.3, pressure = 4, viscosity = 7;
 unsigned long frameNumber;
 
+// int gridWidth = ;
+// int gridHeight = (SCREEN_HEIGTH - SCREEN_HEIGTH % 100)/100;
+
+std::vector<int> gridCell[GRID_CELL_W][GRID_CELL_H];
 
 std::vector<Particule> particules(0);
 
@@ -101,6 +112,59 @@ void openGame(std::string pInput)
     {
     	console("Can't open file !");
     }
+}
+
+std::pair<int, int> get_neighbour_pos(int cellX, int cellY, int neighbourID)
+{
+	std::pair<int, int> res;
+	if (neighbourID == 1)
+	{
+		res.first = cellX-1;
+		res.second = cellY-1;
+	}
+	if (neighbourID == 2)
+	{
+		res.first = cellX;
+		res.second = cellY-1;
+	}
+	if (neighbourID == 3)
+	{
+		res.first = cellX+1;
+		res.second = cellY-1;
+	}
+	if (neighbourID == 4)
+	{
+		res.first = cellX-1;
+		res.second = cellY;
+	}
+	if (neighbourID == 5)
+	{
+		res.first = cellX;
+		res.second = cellY;
+	}
+	if (neighbourID == 6)
+	{
+		res.first = cellX+1;
+		res.second = cellY;
+	}
+	if (neighbourID == 7)
+	{
+		res.first = cellX-1;
+		res.second = cellY+1;
+	}
+	if (neighbourID == 8)
+	{
+		res.first = cellX;
+		res.second = cellY+1;
+	}
+	if (neighbourID == 9)
+	{
+		res.first = cellX+1;
+		res.second = cellY+1;
+	}
+	res.first = fmax(fmin(res.first, GRID_CELL_W-1), 0);
+	res.second = fmax(fmin(res.second, GRID_CELL_H-1), 0);
+	return res;
 }
 
 void saveGame(std::string pFileName)
@@ -183,10 +247,10 @@ int main(int argc, char *argv[])
 	{
 		std::cout << "SDL_INIT has failed. Error -> " << SDL_GetError() << std::endl;
 	}
-	if (!IMG_Init(IMG_INIT_PNG))
-	{
-		std::cout << "IMG_INIT has failed. Error -> " << SDL_GetError() << std::endl;
-	}
+	// if (!IMG_Init(IMG_INIT_PNG))
+	// {
+	// 	std::cout << "IMG_INIT has failed. Error -> " << SDL_GetError() << std::endl;
+	// }
 
 
 	RenderWindow window("Game", SCREEN_WIDTH, SCREEN_HEIGTH);
@@ -423,13 +487,58 @@ int main(int argc, char *argv[])
 
 			int particulesCursor, particulesCursor2;
 
+			// std::cout <<  "---" << std::endl;
+
+			for (int x = 0; x < GRID_CELL_W; ++x)
+			{
+				for (int y = 0; y < GRID_CELL_H; ++y)
+				{
+					gridCell[x][y].clear();
+				}
+			}
+
+			// std::cout <<  "clear" << std::endl;
+
+			for (int particulesCursor = 0; particulesCursor < totalOfParticules; particulesCursor++)
+			{
+				// x = round(particules[particulesCursor].xPos);
+				// y = round(particules[particulesCursor].yPos);
+				gridPosX = floor(particules[particulesCursor].xPos);
+				gridPosY = floor(particules[particulesCursor].yPos);
+				gridPosX = fmin( (gridPosX - gridPosX%CELL_SIZE)/CELL_SIZE, GRID_CELL_W-1 );
+				gridPosY = fmin( (gridPosY - gridPosY%CELL_SIZE)/CELL_SIZE, GRID_CELL_H-1 );
+
+				particules[particulesCursor].gridX = gridPosX;
+				particules[particulesCursor].gridY = gridPosY;
+				// std:: cout << gridPosX << " " << gridPosY << std::endl;
+
+				gridCell[gridPosX][gridPosY].push_back(particulesCursor);
+
+			}
+			// std::cout <<  "setup" << std::endl;
+
 			for (particulesCursor = 0; particulesCursor < totalOfParticules; particulesCursor++){
 				particules[particulesCursor].density = particules[particulesCursor].wallflag * 9;
-	
-					for (particulesCursor2 = 0; particulesCursor2 < totalOfParticules; particulesCursor2++){
-	
-						xParticuleDistance = particules[particulesCursor].xPos - particules[particulesCursor2].xPos;
-						yParticuleDistance = particules[particulesCursor].yPos - particules[particulesCursor2].yPos;
+				std::pair<int, int> centralGridCoord;
+				centralGridCoord.first = particules[particulesCursor].gridX;
+				centralGridCoord.second = particules[particulesCursor].gridY;
+				for (int i = 1; i < 10; ++i)
+				{
+					std::pair<int, int> gridCellCoord = get_neighbour_pos(centralGridCoord.first, centralGridCoord.second, i);
+					if (gridCellCoord == centralGridCoord and i != 5)
+					{
+						continue;
+					}
+					std::vector<int> cellParticulesID = gridCell[gridCellCoord.first][gridCellCoord.second];
+					for (unsigned i = 0; i < cellParticulesID.size(); ++i)
+					{
+						// cellParticulesID[i] = fmin(cellParticulesID[i], totalOfParticules);
+						// if (cellParticulesID[i] >= totalOfParticules-1)
+						// {
+						// 	std::cout <<  "meh" << std::endl;
+						// }
+						xParticuleDistance = particules[particulesCursor].xPos - particules[cellParticulesID[i]].xPos;
+						yParticuleDistance = particules[particulesCursor].yPos - particules[cellParticulesID[i]].yPos;
 						particulesDistance = xParticuleDistance*xParticuleDistance + yParticuleDistance*yParticuleDistance;
 	
 						if (particulesDistance < 4){
@@ -440,25 +549,63 @@ int main(int argc, char *argv[])
 
 					}
 				}
+
+				// for (particulesCursor2 = 0; particulesCursor2 < totalOfParticules; particulesCursor2++){
 	
-				for (particulesCursor = 0; particulesCursor < totalOfParticules; particulesCursor++){
+				// 	xParticuleDistance = particules[particulesCursor].xPos - particules[particulesCursor2].xPos;
+				// 	yParticuleDistance = particules[particulesCursor].yPos - particules[particulesCursor2].yPos;
+				// 	particulesDistance = xParticuleDistance*xParticuleDistance + yParticuleDistance*yParticuleDistance;
+	
+				// 	if (particulesDistance < 4){
+				// 		particulesDistance = sqrt(particulesDistance);
+				// 		particulesInteraction = particulesDistance / 2.0 - 1.0;
+				// 		particules[particulesCursor].density += particulesInteraction * particulesInteraction;
+				// 	}
+
+				// }
+			}
+			// std::cout <<  "a" << std::endl;
+	
+				for (particulesCursor = 0; particulesCursor < totalOfParticules; particulesCursor++)
+				{
 					particules[particulesCursor].yForce = gravity;
 					particules[particulesCursor].xForce = 0;
 	
-					for (particulesCursor2 = 0; particulesCursor2 < totalOfParticules; particulesCursor2++){
+					std::pair<int, int> centralGridCoord;
+					centralGridCoord.first = particules[particulesCursor].gridX;
+					centralGridCoord.second = particules[particulesCursor].gridY;
+					for (int i = 1; i < 10; ++i)
+					{
+						std::pair<int, int> gridCellCoord = get_neighbour_pos(centralGridCoord.first, centralGridCoord.second, i);
+						if (gridCellCoord == centralGridCoord and i != 5)
+						{
+							continue;
+						}
+						std::vector<int> cellParticulesID = gridCell[gridCellCoord.first][gridCellCoord.second];
+						for (unsigned i = 0; i < cellParticulesID.size(); ++i)
+						{
+							// cellParticulesID[i] = fmin(cellParticulesID[i], totalOfParticules);
+							// if (cellParticulesID[i] >= totalOfParticules-1)
+							// {
+							// 	std::cout <<  "meh" << std::endl;
+							// }
+							xParticuleDistance = particules[particulesCursor].xPos - particules[cellParticulesID[i]].xPos;
+							yParticuleDistance = particules[particulesCursor].yPos - particules[cellParticulesID[i]].yPos;
+							particulesDistance = xParticuleDistance*xParticuleDistance + yParticuleDistance*yParticuleDistance;
 	
-						xParticuleDistance = particules[particulesCursor].xPos - particules[particulesCursor2].xPos;
-						yParticuleDistance = particules[particulesCursor].yPos - particules[particulesCursor2].yPos;
-						particulesDistance = xParticuleDistance*xParticuleDistance + yParticuleDistance*yParticuleDistance;
-	
-						if (particulesDistance < 4){
-							particulesDistance = sqrt(particulesDistance);
-							particulesInteraction = particulesDistance / 2.0 - 1.0;
-							particules[particulesCursor].xForce += particulesInteraction * (xParticuleDistance * (3 - particules[particulesCursor].density - particules[particulesCursor2].density) * pressure + particules[particulesCursor].xVelocity * viscosity - particules[particulesCursor2].xVelocity * viscosity) / particules[particulesCursor].density;
-							particules[particulesCursor].yForce += particulesInteraction * (yParticuleDistance * (3 - particules[particulesCursor].density - particules[particulesCursor2].density) * pressure + particules[particulesCursor].yVelocity * viscosity - particules[particulesCursor2].yVelocity * viscosity) / particules[particulesCursor].density;
+							if (particulesDistance < 4)
+							{
+								particulesDistance = sqrt(particulesDistance);
+								particulesInteraction = particulesDistance / 2.0 - 1.0;
+								particules[particulesCursor].xForce += particulesInteraction * (xParticuleDistance * (3 - particules[particulesCursor].density - particules[cellParticulesID[i]].density) * pressure + particules[particulesCursor].xVelocity * viscosity - particules[cellParticulesID[i]].xVelocity * viscosity) / particules[particulesCursor].density;
+								particules[particulesCursor].yForce += particulesInteraction * (yParticuleDistance * (3 - particules[particulesCursor].density - particules[cellParticulesID[i]].density) * pressure + particules[particulesCursor].yVelocity * viscosity - particules[cellParticulesID[i]].yVelocity * viscosity) / particules[particulesCursor].density;
+							}
+
 						}
 					}
 				}
+
+				// std::cout <<  "b" << std::endl;
 	
 				for (particulesCursor = 0; particulesCursor < totalOfParticules; particulesCursor++) {
 	
@@ -477,7 +624,9 @@ int main(int argc, char *argv[])
 						particules[particulesCursor].yPos += particules[particulesCursor].yVelocity;
 	
 				}
+
 			}
+			// std::cout <<  "c" << std::endl;
 		}
 		endSim:
 		
@@ -486,7 +635,7 @@ int main(int argc, char *argv[])
 			xScreenPos = particules[i].xPos * zoomFactor;
 			yScreenPos = particules[i].yPos * zoomFactor;
 
-			if (yScreenPos > SCREEN_HEIGTH)
+			if (yScreenPos > SCREEN_HEIGTH-0 || yScreenPos < 0 || xScreenPos < 0 || xScreenPos > SCREEN_WIDTH-0)
 			{
 				particules.erase(particules.begin()+i);
 				totalOfParticules--;
@@ -525,6 +674,8 @@ int main(int argc, char *argv[])
 
 			window.DrawRect(xScreenPos, yScreenPos, xParticuleDrawSize, yParticuleDrawSize, drawRed, drawGreen, drawBlue);
 		}
+
+		// std::cout <<  "d" << std::endl;
 
 		// console(std::to_string(totalOfParticules).c_str());
 
