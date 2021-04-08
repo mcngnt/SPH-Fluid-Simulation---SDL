@@ -1,4 +1,5 @@
 For generating a new scene as a save file, modify the target.png file 
 (keep the same color palette as the original), run the python code and paste
-the save generated in tour clipboard into a new save file in build/saves. Register it as
-xxx.sfs and load it into the programm using the key L and typing xxx.sfs in the console.
+the save generated in your clipboard into a new save file in the saves folder. Register it as
+yourfilename.sfs and load it into the programm using the key L, type yourfilename.sfs 
+in the console and presse enter.

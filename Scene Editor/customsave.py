@@ -8,7 +8,6 @@ def val_ndarray(ndarr):
 	arr = []
 	for element in ndarr:
 		arr.append(element)
-	# print(arr)
 	return arr
 
 def is_equal(arr1, arr2):
@@ -19,27 +18,20 @@ def is_equal(arr1, arr2):
 
 from PIL import Image
 from numpy import asarray
-# load the image
 image = Image.open('target.png')
-# convert image to numpy array
 data = asarray(image)
 print(type(data))
-# summarize shape
 print(data.shape)
 
-# create Pillow image
 image2 = Image.fromarray(data)
 print(type(image2))
 
-# summarize image details
 print(image2.mode)
 print(image2.size)
 
 f = open("final.sfs", "w")
 
 finalstr = ""
-
-# print(type(data[0][100]))
 
 for x in range(1080):
 	for y in range(720):
