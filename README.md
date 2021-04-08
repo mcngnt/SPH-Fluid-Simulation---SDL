@@ -1,34 +1,22 @@
 # SPH Fluid Simulation - SDL
  Fluid simulation made in SDL using the Smoothed particle hydrodynamics (SPH) method.
 
- ![](demo.gif)
+ ![](res/demo.gif)
 
-Left click for placing particules.
+##Controls
 
-Right and middle click for deleting particules.
-
-Scroll wheel for zooming
-	
-Space for pausing the simulation.
-
-X for changing the particules's type (red for the walls and blue-purple for the liquid.
-
-S for authaurizing overlap when placing particules
-
-Right arrow for playing one step at a time
-
-T for taking a screenshot of the sim (in the folder images)
-
-F for activating the screenshot mode, the sim takes a screenshot every frame
-
-I for knowing the current number of particules in the sim
-
-P for deleting all the particules
-
-H change pencil size
-
-N for saving the current sim (in the saves folder)
-
-L for loading a save in the programm (the save need to be in saves folder)
-
-U for disable the density view
+- Left click : place particules.
+- Right and middle click : delete particules.
+- Scroll wheel : zoom
+- Space : pause
+- X : change particule's type (red for the walls and blue-purple for the liquid.
+- S : allow overlapping when placing particules
+- Right arrow : play one step of the simulation
+- T : take a screenshot (avaible in the images folder)
+- F : enable screenshot mode, take a screenshot every frame
+- I : display in the console the current number of particules
+- P : delete all particules
+- H : increase pencil size
+- N : save the current simulation (in the saves folder)
+- L : load a save
+- U : disable density/velocity view
