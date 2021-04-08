@@ -3,7 +3,7 @@
 
  ![](res/demo.gif)
 
-##Controls
+## Controls
 
 - Left click : place particules.
 - Right and middle click : delete particules.
